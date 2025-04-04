@@ -1,52 +1,41 @@
-import { useEffect, useState } from 'react';
+import { SetStateAction, useEffect, useState } from 'react';
 import { Book } from '../types/Book';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext'; // Import useCart hook
+import { fetchBooks } from '../api/BooksAPI';
+import Pagination from './Pagination';
 
 function BookList({ selectedCategories }: { selectedCategories: string[] }) {
   const [books, setBooks] = useState<Book[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
   const [page, setPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(5);
   const [totalBooks, setTotalBooks] = useState<number>(0);
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const navigate = useNavigate();
-  
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
   const { cart, addToCart } = useCart(); // Use cart context
 
   useEffect(() => {
-    const fetchBooks = async () => {
-      const categoryParams =
-        selectedCategories.length > 0
-          ? selectedCategories
-              .map((cat) => `bookCategory=${encodeURIComponent(cat)}`)
-              .join('&')
-          : '';
-
+    const loadBooks = async () => {
       try {
         setLoading(true);
-        const response = await fetch(
-          `https://localhost:5000/api/Book?page=${page}&pageSize=${pageSize}&sortOrder=${sortOrder}${
-            categoryParams ? `&${categoryParams}` : ''
-          }`
-        );
-
-        if (!response.ok) throw new Error('Failed to fetch books');
-
-        const data = await response.json();
+        // Call fetchBooks without sortOrder
+        const data = await fetchBooks(page, pageSize, selectedCategories);
         setBooks(data.books);
         setTotalBooks(data.totalBooks);
       } catch (error) {
-        console.error('Error fetching books:', error);
+        setError((error as Error).message);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchBooks();
-  }, [page, pageSize, sortOrder, selectedCategories]);
+    loadBooks();
+  }, [page, pageSize, selectedCategories]); // Re-fetch books when page, pageSize, or selectedCategories change
 
-  const totalPages = Math.ceil(totalBooks / pageSize);
+  if (loading) return <p>Loading books...</p>;
+  if (error) return <p className='text-red-500'>Error: {error}</p>;
+  const totalPages = Math.max(1, Math.ceil(totalBooks / pageSize));
 
   // Add to Cart handler
   const handleAddToCart = (book: Book) => {
@@ -68,25 +57,6 @@ function BookList({ selectedCategories }: { selectedCategories: string[] }) {
       <div className="row">
         {/* Books List */}
         <div className="col-md-8">
-          {/* Sorting & Page Size Controls */}
-          <label>
-            Books per page:
-            <select
-              value={pageSize}
-              onChange={(e) => setPageSize(Number(e.target.value))}
-            >
-              <option value="5">5</option>
-              <option value="10">10</option>
-              <option value="20">20</option>
-            </select>
-          </label>
-
-          <button
-            onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-          >
-            Sort by Title {sortOrder === 'asc' ? '🔼' : '🔽'}
-          </button>
-
           {/* Books List */}
           {loading ? (
             <p>Loading...</p>
@@ -122,21 +92,16 @@ function BookList({ selectedCategories }: { selectedCategories: string[] }) {
           )}
 
           {/* Pagination Controls */}
-          <div>
-            <button onClick={() => setPage(page - 1)} disabled={page === 1}>
-              Previous
-            </button>
-            <span>
-              {' '}
-              Page {page} of {totalPages}{' '}
-            </span>
-            <button
-              onClick={() => setPage(page + 1)}
-              disabled={page === totalPages}
-            >
-              Next
-            </button>
-          </div>
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={(newSize: SetStateAction<number>) => {
+              setPageSize(newSize);
+              setPage(1);
+            }}
+          />
         </div>
 
         {/* Cart Summary */}
