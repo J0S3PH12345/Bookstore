@@ -15,7 +15,7 @@ function CategoryFilter({
     useEffect(() =>{
         const fetchCategories = async () => {
             try{
-            const response = await fetch('https://bookstoreproject-tew-backend-bwhebscrf9h3d5ge.eastus-01.azurewebsites.net/api/BookBook/GetBookCategories');
+            const response = await fetch('https://bookstoreproject-tew-backend-bwhebscrf9h3d5ge.eastus-01.azurewebsites.net/api/Book/GetBookCategories');
             const data = await response.json();
             console.log('Fetched categories:', data);
             setCategories(data)
