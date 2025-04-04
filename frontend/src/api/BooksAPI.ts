@@ -5,7 +5,7 @@ books: Book[];
 totalBooks: number;
 }
 
-const API_URL = 'https://localhost:5000/api/Book';
+const API_URL = 'https://bookstoreproject-tew-backend-bwhebscrf9h3d5ge.eastus-01.azurewebsites.net/api/Book';
 
 export const fetchBooks = async (
 page: number,

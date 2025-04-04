@@ -17,32 +17,56 @@ namespace BookstoreProject.API.Controllers
         }
 
         [HttpGet]
-        public IActionResult GetBooks(int page = 1, int pageSize = 5, string sortOrder = "asc", [FromQuery] List<string> bookCategory = null)
+        public IActionResult GetBooks(
+            int page = 1,
+            int pageSize = 5,
+            string sortOrder = "asc",
+            [FromQuery(Name = "categories")] List<string> bookCategory = null,
+            string title = null,
+            string author = null,
+            string publisher = null
+        )
         {
-            // Ensure bookCategory is initialized to prevent null reference issues
             bookCategory ??= new List<string>();
 
             var query = _bookContext.Books.AsQueryable();
 
-            // Only filter if there are selected categories
+            // Filtering logic
             if (bookCategory.Any())
             {
                 query = query.Where(c => bookCategory.Contains(c.Category));
             }
 
-            // Sorting Logic - Default to 'asc' if sortOrder is not provided
+            if (!string.IsNullOrWhiteSpace(title))
+            {
+                query = query.Where(b => b.Title.ToLower().Contains(title.ToLower()));
+            }
+
+            if (!string.IsNullOrWhiteSpace(author))
+            {
+                query = query.Where(b => b.Author.ToLower().Contains(author.ToLower()));
+            }
+
+            if (!string.IsNullOrWhiteSpace(publisher))
+            {
+                query = query.Where(b => b.Publisher.ToLower().Contains(publisher.ToLower()));
+            }
+
+            // Sorting logic
             query = sortOrder.ToLower() == "asc"
                 ? query.OrderBy(b => b.Title)
                 : query.OrderByDescending(b => b.Title);
 
-            // Get total number of books
             var totalBooks = query.Count();
 
-            // Get the books for the current page
-            var books = query.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+            var books = query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
 
             return Ok(new { books, totalBooks });
         }
+
 
         [HttpGet("GetBookCategories")]
         public IActionResult GetBookCategories()
